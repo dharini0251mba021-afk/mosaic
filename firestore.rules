@@ -1,0 +1,128 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Deny Catch-All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper Functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // 1. Users Collection (/users/{userId})
+    // Public read for creator profiles; updates restricted to the account owner
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.name is string && data.name.size() > 0 && data.name.size() <= 100
+          && data.username is string && data.username.size() > 0 && data.username.size() <= 50
+          && data.city is string && data.city.size() <= 100
+          && (!('bio' in data) || (data.bio is string && data.bio.size() <= 500))
+          && (!('avatar' in data) || (data.avatar is string && data.avatar.size() <= 1000));
+      }
+
+      allow get, list: if true;
+      allow create: if isOwner(userId) && isValidUser(incoming()) && incoming().id == userId;
+      allow update: if isOwner(userId) && isValidUser(incoming()) && incoming().id == userId;
+      allow delete: if isOwner(userId);
+    }
+
+    // 2. Stories Collection (/stories/{storyId})
+    // Published stories are public. Drafts or owner reads require matching authorId.
+    // Create, update, delete strictly restricted to the story author.
+    match /stories/{storyId} {
+      function isValidStory(data) {
+        return data.title is string && data.title.size() >= 3 && data.title.size() <= 200
+          && data.excerpt is string && data.excerpt.size() >= 10 && data.excerpt.size() <= 400
+          && data.content is string && data.content.size() >= 30
+          && data.category is string && data.category.size() <= 50
+          && data.status in ['published', 'draft']
+          && data.authorId is string && data.authorId.size() <= 128;
+      }
+
+      // Public read for published stories; authors can read their own non-published records
+      allow get: if existing().status == 'published' || (isSignedIn() && existing().authorId == request.auth.uid);
+      allow list: if existing().status == 'published' || (isSignedIn() && existing().authorId == request.auth.uid);
+
+      // Only the authenticated author can create their story
+      allow create: if isSignedIn()
+        && isValidId(storyId)
+        && isValidStory(incoming())
+        && incoming().authorId == request.auth.uid;
+
+      // Only the author can update their own story; authorId is immutable
+      allow update: if isSignedIn()
+        && isValidStory(incoming())
+        && existing().authorId == request.auth.uid
+        && incoming().authorId == existing().authorId;
+
+      // Only the author can delete their story
+      allow delete: if isSignedIn()
+        && existing().authorId == request.auth.uid;
+    }
+
+    // 3. Drafts Collection (/drafts/{draftId})
+    // Strictly private: users cannot view, query, or edit another user's drafts
+    match /drafts/{draftId} {
+      function isValidDraft(data) {
+        return data.userId is string && data.userId.size() <= 128
+          && (!('title' in data) || (data.title is string && data.title.size() <= 200))
+          && (!('excerpt' in data) || (data.excerpt is string && data.excerpt.size() <= 400))
+          && (!('content' in data) || (data.content is string));
+      }
+
+      allow get, list: if isSignedIn() && existing().userId == request.auth.uid;
+
+      allow create: if isSignedIn()
+        && isValidId(draftId)
+        && isValidDraft(incoming())
+        && incoming().userId == request.auth.uid;
+
+      allow update: if isSignedIn()
+        && isValidDraft(incoming())
+        && existing().userId == request.auth.uid
+        && incoming().userId == existing().userId;
+
+      allow delete: if isSignedIn()
+        && existing().userId == request.auth.uid;
+    }
+
+    // 4. Bookmarks Collection (/bookmarks/{bookmarkId})
+    // Private to the bookmark owner
+    match /bookmarks/{bookmarkId} {
+      allow get, list: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // 5. Engagements Collection (/engagements/{engagementId})
+    match /engagements/{engagementId} {
+      allow get, list: if true;
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // 6. Test Probe Collection (Connection verification)
+    match /test/{docId} {
+      allow get: if true;
+    }
+  }
+}

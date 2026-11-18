@@ -1,0 +1,6 @@
+{
+  "name": "Mosaic by Dharini Singh",
+  "description": "Digital storytelling and blogging platform bringing together diverse voices, experiences, and perspectives from across India.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

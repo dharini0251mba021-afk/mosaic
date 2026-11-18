@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+build/
+dist/
+coverage/
+
+# Environment variables & secrets (keep .env.example)
+.env
+.env.*
+!.env.example
+serviceAccountKey*.json
+
+# Vercel & Firebase local caches
+.vercel/
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+
+# OS / Editor
+.DS_Store
+*.log
+*.local

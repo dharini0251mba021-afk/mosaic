@@ -1,0 +1,114 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with personal and authoring details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique user ID matching auth UID" },
+        "name": { "type": "string", "description": "Display name of the author", "maxLength": 100 },
+        "username": { "type": "string", "description": "Unique handle", "maxLength": 50, "pattern": "^[a-zA-Z0-9_]+$" },
+        "email": { "type": "string", "description": "User email address", "format": "email" },
+        "avatar": { "type": "string", "description": "Avatar photo URL", "maxLength": 1000 },
+        "bio": { "type": "string", "description": "Short bio", "maxLength": 500 },
+        "city": { "type": "string", "description": "City in India", "maxLength": 100 },
+        "role": { "type": "string", "description": "User role or designation", "maxLength": 100 },
+        "interests": { "type": "array", "description": "Selected story categories" },
+        "joinedDate": { "type": "string", "description": "Account creation date" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "username", "email", "city"]
+    },
+    "Story": {
+      "title": "Story",
+      "description": "Long-form editorial story or reflection published on Mosaic",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique story ID" },
+        "authorId": { "type": "string", "description": "UID of the story author" },
+        "title": { "type": "string", "description": "Story headline", "maxLength": 200, "minLength": 3 },
+        "excerpt": { "type": "string", "description": "Short description / subtitle", "maxLength": 400, "minLength": 10 },
+        "content": { "type": "string", "description": "Main story prose body", "minLength": 50 },
+        "category": { "type": "string", "description": "Primary story category" },
+        "coverImage": { "type": "string", "description": "Cover image URL", "maxLength": 1000 },
+        "city": { "type": "string", "description": "Origin city in India", "maxLength": 100 },
+        "tags": { "type": "array", "description": "Topic tags" },
+        "readTimeMinutes": { "type": "number", "description": "Estimated reading duration in minutes" },
+        "status": { "type": "string", "enum": ["published", "draft"], "description": "Publication status" },
+        "publishedAt": { "type": "string", "description": "Display publication date string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "likes": { "type": "number", "description": "Count of story likes" },
+        "bookmarks": { "type": "number", "description": "Count of story saves" },
+        "views": { "type": "number", "description": "Count of story reads" }
+      },
+      "required": ["id", "authorId", "title", "excerpt", "content", "category", "status"]
+    },
+    "Draft": {
+      "title": "Draft",
+      "description": "Private, unpublished story draft saved by an author",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique draft ID" },
+        "userId": { "type": "string", "description": "UID of the draft owner" },
+        "title": { "type": "string", "description": "Draft title", "maxLength": 200 },
+        "excerpt": { "type": "string", "description": "Draft summary", "maxLength": 400 },
+        "content": { "type": "string", "description": "Draft body" },
+        "category": { "type": "string", "description": "Selected draft category" },
+        "coverImage": { "type": "string", "description": "Draft cover photo URL" },
+        "city": { "type": "string", "description": "City of author" },
+        "lastSaved": { "type": "string", "description": "Human-readable last saved timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId"]
+    },
+    "Bookmark": {
+      "title": "Bookmark",
+      "description": "Story saved by a user to their private bookmarks collection",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique bookmark ID (typically userId_storyId)" },
+        "userId": { "type": "string", "description": "UID of the user saving the story" },
+        "storyId": { "type": "string", "description": "ID of the saved story" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "storyId"]
+    },
+    "Engagement": {
+      "title": "Engagement",
+      "description": "Like or view interaction on a story",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique engagement ID" },
+        "userId": { "type": "string", "description": "UID of the interacting user" },
+        "storyId": { "type": "string", "description": "Target story ID" },
+        "type": { "type": "string", "enum": ["like", "view"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "storyId", "type"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Public author profiles and user account details"
+    },
+    "/stories/{storyId}": {
+      "schema": { "$ref": "#/entities/Story" },
+      "description": "Public articles and stories published across categories"
+    },
+    "/drafts/{draftId}": {
+      "schema": { "$ref": "#/entities/Draft" },
+      "description": "Private, unpublished story drafts accessible only by their creator"
+    },
+    "/bookmarks/{bookmarkId}": {
+      "schema": { "$ref": "#/entities/Bookmark" },
+      "description": "User reading lists and bookmarked stories"
+    },
+    "/engagements/{engagementId}": {
+      "schema": { "$ref": "#/entities/Engagement" },
+      "description": "Likes and interaction records on stories"
+    }
+  }
+}
